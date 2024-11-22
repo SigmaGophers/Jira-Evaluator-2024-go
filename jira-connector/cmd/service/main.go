@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/jira-connector/config"
+	"github.com/jira-connector/src/config"
 	"github.com/jira-connector/src/connector"
 )
 

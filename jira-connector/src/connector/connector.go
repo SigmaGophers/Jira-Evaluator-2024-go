@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/jira-connector/config"
+	"github.com/jira-connector/src/config"
 	"github.com/jira-connector/src/dto"
 )
 
