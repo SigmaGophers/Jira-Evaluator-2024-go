@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/jira-connector/config"
+	"github.com/jira-connector/src/dto"
 )
 
 type JIRAConnector struct {
@@ -21,31 +22,31 @@ func NewJIRAConnector(cfg *config.Config) *JIRAConnector {
 	return connector
 }
 
-func (connector *JIRAConnector) GetProjectDataJSON(idOrKey string) (Project, error) {
+func (connector *JIRAConnector) GetProjectDataJSON(idOrKey string) (dto.Project, error) {
 	url := fmt.Sprintf("%s/rest/api/2/project/%s", connector.Config.Connector.JiraUrl, idOrKey)
 	req, err := http.NewRequest("GET", url, nil) // example: https://issues.apache.org/jira/rest/api/2/project/AAR
 	if err != nil {
-		return Project{}, err
+		return dto.Project{}, err
 	}
 
 	response, err := connector.HttpClient.Do(req)
 	if err != nil {
-		return Project{}, err
+		return dto.Project{}, err
 	}
 
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return Project{}, fmt.Errorf("error: %s", response.Status)
+		return dto.Project{}, fmt.Errorf("error: %s", response.Status)
 	}
 
 	return connector.parseProjectResponse(response.Body)
 }
 
-func (connector *JIRAConnector) parseProjectResponse(body io.ReadCloser) (Project, error) {
-	var project Project
+func (connector *JIRAConnector) parseProjectResponse(body io.ReadCloser) (dto.Project, error) {
+	var project dto.Project
 	err := json.NewDecoder(body).Decode(&project)
 	if err != nil {
-		return Project{}, err
+		return dto.Project{}, err
 	}
 	return project, nil
 }

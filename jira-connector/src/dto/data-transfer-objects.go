@@ -1,4 +1,4 @@
-package connector
+package dto
 
 type Project struct {
 	Self string `json:"self"` // А надо сохранять это поле?
