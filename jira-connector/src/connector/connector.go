@@ -22,7 +22,7 @@ func NewJIRAConnector(cfg *config.Config) *JIRAConnector {
 	return connector
 }
 
-func (connector *JIRAConnector) GetProjectIssuesJSON(projectIdOrKey string) ([]dto.Issue, error) {
+func (connector *JIRAConnector) GetProjectIssuesJSON(projectIdOrKey string) ([]dto.Issue, error) { // А что если projectIdOrKey неправильный?
 	url := fmt.Sprintf("%s/rest/api/2/search?jql=project=%s&maxResults=50&expand=changelog", connector.Config.Connector.JiraUrl, projectIdOrKey)
 
 	req, err := http.NewRequest("GET", url, nil)
