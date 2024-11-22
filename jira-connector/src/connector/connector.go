@@ -22,31 +22,36 @@ func NewJIRAConnector(cfg *config.Config) *JIRAConnector {
 	return connector
 }
 
-func (connector *JIRAConnector) GetProjectDataJSON(idOrKey string) (dto.Project, error) {
-	url := fmt.Sprintf("%s/rest/api/2/project/%s", connector.Config.Connector.JiraUrl, idOrKey)
-	req, err := http.NewRequest("GET", url, nil) // example: https://issues.apache.org/jira/rest/api/2/project/AAR
+func (connector *JIRAConnector) GetProjectIssuesJSON(projectIdOrKey string) ([]dto.Issue, error) {
+	url := fmt.Sprintf("%s/rest/api/2/search?jql=project=%s&maxResults=50&expand=changelog", connector.Config.Connector.JiraUrl, projectIdOrKey)
+
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return dto.Project{}, err
+		return nil, err
 	}
 
 	response, err := connector.HttpClient.Do(req)
 	if err != nil {
-		return dto.Project{}, err
+		return nil, err
 	}
 
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return dto.Project{}, fmt.Errorf("error: %s", response.Status)
+		return nil, fmt.Errorf("error: %s", response.Status)
 	}
 
-	return connector.parseProjectResponse(response.Body)
+	return connector.parseIssuesResponse(response.Body)
 }
 
-func (connector *JIRAConnector) parseProjectResponse(body io.ReadCloser) (dto.Project, error) {
-	var project dto.Project
-	err := json.NewDecoder(body).Decode(&project)
-	if err != nil {
-		return dto.Project{}, err
+func (connector *JIRAConnector) parseIssuesResponse(body io.ReadCloser) ([]dto.Issue, error) {
+	var searchResponse struct {
+		Issues []dto.Issue `json:"issues"`
 	}
-	return project, nil
+
+	err := json.NewDecoder(body).Decode(&searchResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return searchResponse.Issues, nil
 }
