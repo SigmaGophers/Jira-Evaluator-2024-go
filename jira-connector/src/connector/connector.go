@@ -12,19 +12,19 @@ import (
 
 type JIRAConnector struct {
 	HttpClient *http.Client
-	Config     *config.Config
+	Cfg        *config.Config
 }
 
 func NewJIRAConnector(cfg *config.Config) *JIRAConnector {
 	connector := new(JIRAConnector)
 	connector.HttpClient = &http.Client{}
-	connector.Config = cfg
+	connector.Cfg = cfg
 	return connector
 }
 
-func (connector *JIRAConnector) GetProjectIssuesJSON(projectIdOrKey string) (dto.IssuesResponse, error) { // А что если projectIdOrKey неправильный? Добавить дефолтные значения
-	url := fmt.Sprintf("%s/rest/api/2/search?jql=project=%s&maxResults=%d&expand=changelog", connector.Config.Connector.JiraUrl, projectIdOrKey, connector.Config.Connector.IssuesPerRequest)
-	resp, err := connector.doIssuesRequest(url)
+func (con *JIRAConnector) GetProjectIssuesJSON(projectIdOrKey string) (dto.IssuesResponse, error) { // А что если projectIdOrKey неправильный? Добавить дефолтные значения
+	url := fmt.Sprintf("%s/rest/api/2/search?jql=project=%s&maxResults=%d&expand=changelog", con.Cfg.Connector.JiraUrl, projectIdOrKey, con.Cfg.Connector.MaxIssuesInRequest)
+	resp, err := con.doIssuesRequest(url)
 	if err != nil {
 		return dto.IssuesResponse{}, err
 	}
@@ -32,13 +32,13 @@ func (connector *JIRAConnector) GetProjectIssuesJSON(projectIdOrKey string) (dto
 	return resp, nil
 }
 
-func (connector *JIRAConnector) doIssuesRequest(url string) (dto.IssuesResponse, error) {
+func (con *JIRAConnector) doIssuesRequest(url string) (dto.IssuesResponse, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return dto.IssuesResponse{}, err
 	}
 
-	response, err := connector.HttpClient.Do(req)
+	response, err := con.HttpClient.Do(req)
 	if err != nil {
 		return dto.IssuesResponse{}, err
 	}
@@ -48,10 +48,10 @@ func (connector *JIRAConnector) doIssuesRequest(url string) (dto.IssuesResponse,
 		return dto.IssuesResponse{}, fmt.Errorf("error: %s", response.Status)
 	}
 
-	return connector.parseIssuesResponse(response.Body)
+	return con.parseIssuesResponse(response.Body)
 }
 
-func (connector *JIRAConnector) parseIssuesResponse(body io.ReadCloser) (dto.IssuesResponse, error) {
+func (con *JIRAConnector) parseIssuesResponse(body io.ReadCloser) (dto.IssuesResponse, error) {
 	var response dto.IssuesResponse
 
 	err := json.NewDecoder(body).Decode(&response)
