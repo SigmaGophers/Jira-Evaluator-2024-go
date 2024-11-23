@@ -1,9 +1,8 @@
 package dto
 
-type Project struct {
-	ID   string `json:"id"`
-	Key  string `json:"key"`
-	Name string `json:"name"`
+type IssuesResponse struct {
+	IssuesCount int     `json:"total"`
+	Issues      []Issue `json:"issues"`
 }
 
 type Issue struct {
@@ -18,6 +17,12 @@ type Fields struct {
 	Summary     string    `json:"summary"`
 	Changelog   Changelog `json:"changelog"`
 	Description string    `json:"description"`
+}
+
+type Project struct {
+	ID   string `json:"id"`
+	Key  string `json:"key"`
+	Name string `json:"name"`
 }
 
 type User struct {
