@@ -22,36 +22,42 @@ func NewJIRAConnector(cfg *config.Config) *JIRAConnector {
 	return connector
 }
 
-func (connector *JIRAConnector) GetProjectIssuesJSON(projectIdOrKey string) ([]dto.Issue, error) { // А что если projectIdOrKey неправильный? Добавить дефолтные значения
+func (connector *JIRAConnector) GetProjectIssuesJSON(projectIdOrKey string) (dto.IssuesResponse, error) { // А что если projectIdOrKey неправильный? Добавить дефолтные значения
 	url := fmt.Sprintf("%s/rest/api/2/search?jql=project=%s&maxResults=%d&expand=changelog", connector.Config.Connector.JiraUrl, projectIdOrKey, connector.Config.Connector.IssuesPerRequest)
+	resp, err := connector.doIssuesRequest(url)
+	if err != nil {
+		return dto.IssuesResponse{}, err
+	}
 
+	return resp, nil
+}
+
+func (connector *JIRAConnector) doIssuesRequest(url string) (dto.IssuesResponse, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return dto.IssuesResponse{}, err
 	}
 
 	response, err := connector.HttpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return dto.IssuesResponse{}, err
 	}
 
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error: %s", response.Status)
+		return dto.IssuesResponse{}, fmt.Errorf("error: %s", response.Status)
 	}
 
 	return connector.parseIssuesResponse(response.Body)
 }
 
-func (connector *JIRAConnector) parseIssuesResponse(body io.ReadCloser) ([]dto.Issue, error) {
-	var searchResponse struct {
-		Issues []dto.Issue `json:"issues"`
-	}
+func (connector *JIRAConnector) parseIssuesResponse(body io.ReadCloser) (dto.IssuesResponse, error) {
+	var response dto.IssuesResponse
 
-	err := json.NewDecoder(body).Decode(&searchResponse)
+	err := json.NewDecoder(body).Decode(&response)
 	if err != nil {
-		return nil, err
+		return dto.IssuesResponse{}, err
 	}
 
-	return searchResponse.Issues, nil
+	return response, nil
 }
