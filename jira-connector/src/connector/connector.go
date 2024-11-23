@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync"
+	"time"
 
 	"github.com/jira-connector/src/config"
 	"github.com/jira-connector/src/dto"
@@ -23,32 +23,51 @@ func NewJIRAConnector(cfg *config.Config) *JIRAConnector {
 	return connector
 }
 
-func (con *JIRAConnector) GetProjectIssuesJSON(projectIdOrKey string) (dto.IssuesResponse, error) { // А что если projectIdOrKey неправильный? Добавить дефолтные значения
-	url := fmt.Sprintf("%s/rest/api/2/search?jql=project=%s&maxResults=%d&expand=changelog", con.Cfg.Connector.JiraUrl, projectIdOrKey, con.Cfg.Connector.MaxIssuesInRequest)
-	resp, err := con.doIssuesRequest(url)
+func (con *JIRAConnector) GetProjectIssuesJSON(projectIdOrKey string) (dto.IssuesResponse, error) {
+	baseURL := fmt.Sprintf("%s/rest/api/2/search?jql=project=%s&maxResults=0&expand=changelog", con.Cfg.Connector.JiraUrl, projectIdOrKey)
+
+	initialResp, err := con.doIssuesRequest(baseURL)
 	if err != nil {
 		return dto.IssuesResponse{}, err
 	}
 
-	var wg sync.WaitGroup
-	var m sync.Mutex
-	doneRequestCount := 0
+	issuesChan := make(chan []dto.Issue)
+	errorsChan := make(chan error)
 	for i := 0; i < con.Cfg.Connector.GoroutinesCount; i++ {
-		wg.Add(1)
 		startAt := i * con.Cfg.Connector.MaxIssuesInRequest
-		url = fmt.Sprintf("%s/rest/api/2/search?jql=project=%s&startAt=%d&maxResults=%d&expand=changelog", con.Cfg.Connector.JiraUrl, projectIdOrKey, startAt, con.Cfg.Connector.MaxIssuesInRequest)
+		url := fmt.Sprintf("%s/rest/api/2/search?jql=project=%s&startAt=%d&maxResults=%d&expand=changelog", con.Cfg.Connector.JiraUrl, projectIdOrKey, startAt, con.Cfg.Connector.MaxIssuesInRequest)
 		fmt.Println(url)
-		go func() {
-			defer wg.Done()
-			r, _ := con.doIssuesRequest(url)
-			m.Lock()
-			doneRequestCount += len(r.Issues)
-			m.Unlock()
-		}()
+		go func(url string) {
+			resp, err := con.doIssuesRequest(url)
+			if err != nil {
+				errorsChan <- err
+				return
+			}
+			issuesChan <- resp.Issues
+		}(url)
 	}
-	wg.Wait()
-	fmt.Println("GetProjectIssuesJSON:", doneRequestCount)
-	return resp, nil
+
+	doneGoroutines := 0
+	for {
+		select {
+		case issues, ok := <-issuesChan:
+			if ok {
+				initialResp.Issues = append(initialResp.Issues, issues...)
+				doneGoroutines++
+			}
+		case err := <-errorsChan:
+			return dto.IssuesResponse{}, err
+		case <-time.After(10 * time.Second):
+			fmt.Println("Timeout waiting for issues.")
+			return dto.IssuesResponse{}, fmt.Errorf("timeout waiting for issues from JIRA API")
+		}
+
+		if doneGoroutines >= con.Cfg.Connector.GoroutinesCount {
+			break
+		}
+	}
+
+	return initialResp, nil
 }
 
 func (con *JIRAConnector) doIssuesRequest(url string) (dto.IssuesResponse, error) {
