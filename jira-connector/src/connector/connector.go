@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 
 	"github.com/jira-connector/src/config"
 	"github.com/jira-connector/src/dto"
@@ -29,6 +30,24 @@ func (con *JIRAConnector) GetProjectIssuesJSON(projectIdOrKey string) (dto.Issue
 		return dto.IssuesResponse{}, err
 	}
 
+	var wg sync.WaitGroup
+	var m sync.Mutex
+	doneRequestCount := 0
+	for i := 0; i < con.Cfg.Connector.GoroutinesCount; i++ {
+		wg.Add(1)
+		startAt := i * con.Cfg.Connector.MaxIssuesInRequest
+		url = fmt.Sprintf("%s/rest/api/2/search?jql=project=%s&startAt=%d&maxResults=%d&expand=changelog", con.Cfg.Connector.JiraUrl, projectIdOrKey, startAt, con.Cfg.Connector.MaxIssuesInRequest)
+		fmt.Println(url)
+		go func() {
+			defer wg.Done()
+			r, _ := con.doIssuesRequest(url)
+			m.Lock()
+			doneRequestCount += len(r.Issues)
+			m.Unlock()
+		}()
+	}
+	wg.Wait()
+	fmt.Println("GetProjectIssuesJSON:", doneRequestCount)
 	return resp, nil
 }
 
