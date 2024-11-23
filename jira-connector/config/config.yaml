@@ -8,7 +8,7 @@ data_base:
 connector:
   http_port: 8080 # Порт для локального HTTP сервера
   jira_url: "https://issues.apache.org/jira" # url на Jira репозиторий
-  issues_per_request: 50 # Количество Issues за 1 запрос
+  issues_per_request: 270 # Количество Issues за 1 запрос
   number_of_goroutines: 8 # Количество потоков при выгрузке из Jira
   max_retry_wait: 30 # Максимальное время ожидания для повторной отправки запроса
   initial_retry_wait: 10 # Начальное время ожидания для повторной отправки запроса

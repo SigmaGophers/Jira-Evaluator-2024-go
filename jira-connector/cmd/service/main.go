@@ -25,6 +25,6 @@ func main() {
 		return
 	}
 
-	fmt.Print(data.Issues[0].Fields.Project)
-	fmt.Printf("\nTime: %v\n", duration) // Time: 746.696ms Time: 726.4737ms Time: 726.4737ms Time: 731.9331ms
+	fmt.Print(data.IssuesCount, len(data.Issues))
+	fmt.Printf("\nTime: %v\n", duration) // Time: 2.7817425s Time: 2.7046177s Time: 3.0152594s Time: 2.645088s
 }
