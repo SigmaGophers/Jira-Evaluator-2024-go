@@ -36,7 +36,6 @@ func (con *JIRAConnector) GetProjectIssuesJSON(projectIdOrKey string) (dto.Issue
 	for i := 0; i < con.Cfg.Connector.GoroutinesCount; i++ {
 		startAt := i * con.Cfg.Connector.MaxIssuesInRequest
 		url := fmt.Sprintf("%s/rest/api/2/search?jql=project=%s&startAt=%d&maxResults=%d&expand=changelog", con.Cfg.Connector.JiraUrl, projectIdOrKey, startAt, con.Cfg.Connector.MaxIssuesInRequest)
-		fmt.Println(url)
 		go func(url string) {
 			resp, err := con.doIssuesRequest(url)
 			if err != nil {
@@ -89,6 +88,7 @@ func (con *JIRAConnector) doIssuesRequest(url string) (dto.IssuesResponse, error
 	return con.parseIssuesResponse(response.Body)
 }
 
+// Может сделать отдельный класс прасер?
 func (con *JIRAConnector) parseIssuesResponse(body io.ReadCloser) (dto.IssuesResponse, error) {
 	var response dto.IssuesResponse
 

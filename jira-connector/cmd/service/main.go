@@ -24,9 +24,6 @@ func main() {
 		fmt.Print(err)
 		return
 	}
-	for _, issue := range data.Issues {
-		fmt.Printf("Issue ID: %s, Key: %s\n", issue.ID, issue.Key)
-	}
 
 	fmt.Print(data.IssuesCount, len(data.Issues))
 	fmt.Printf("\nTime: %v\n", duration) // Time: 2.7817425s Time: 2.7046177s Time: 3.0152594s Time: 2.645088s
