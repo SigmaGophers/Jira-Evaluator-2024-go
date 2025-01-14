@@ -1,14 +1,13 @@
 package connector
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
 	"github.com/jira-connector/src/config"
 	"github.com/jira-connector/src/dto"
+	"github.com/jira-connector/src/parser"
 )
 
 type JIRAConnector struct {
@@ -56,7 +55,7 @@ func (con *JIRAConnector) GetProjectIssuesJSON(projectIdOrKey string) (dto.Issue
 			}
 		case err := <-errorsChan:
 			return dto.IssuesResponse{}, err
-		case <-time.After(10 * time.Second):
+		case <-time.After(5 * time.Second):
 			fmt.Println("Timeout waiting for issues.")
 			return dto.IssuesResponse{}, fmt.Errorf("timeout waiting for issues from JIRA API")
 		}
@@ -85,17 +84,6 @@ func (con *JIRAConnector) doIssuesRequest(url string) (dto.IssuesResponse, error
 		return dto.IssuesResponse{}, fmt.Errorf("error: %s", response.Status)
 	}
 
-	return con.parseIssuesResponse(response.Body)
-}
-
-// Может сделать отдельный класс прасер?
-func (con *JIRAConnector) parseIssuesResponse(body io.ReadCloser) (dto.IssuesResponse, error) {
-	var response dto.IssuesResponse
-
-	err := json.NewDecoder(body).Decode(&response)
-	if err != nil {
-		return dto.IssuesResponse{}, err
-	}
-
-	return response, nil
+	p := parser.NewParser()
+	return p.ParseIssuesResponse(response.Body)
 }
